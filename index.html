@@ -334,6 +334,9 @@
   @media (prefers-color-scheme: dark){
     .par-jour{background:#242320; border-color:#33312c;}
   }
+  .carte-calendrier{text-align:center; padding:14px 16px;}
+  .carte-calendrier .cal-titre{font-weight:600; font-size:.95rem; margin-bottom:4px;}
+  .carte-calendrier .note{margin-top:2px;}
 </style>
 </head>
 <body>
@@ -398,6 +401,12 @@
     <div class="carte cliquable" onclick="ouvrirRdv()">
       <h2>📌 Prochains rendez-vous ou évènements ›</h2>
       <div id="listeRdvAccueil"></div>
+    </div>
+
+    <div class="carte cliquable carte-calendrier" onclick="exporterCalendrier()">
+      <div class="cal-titre">📅 Ajouter les rappels au calendrier ›</div>
+      <div class="note">Prévenu la veille et le jour même à 7h, même application fermée.</div>
+      <div class="note" id="infoCalendrier"></div>
     </div>
   </div>
 
@@ -548,17 +557,6 @@
       <h4>Dépenses automatiques</h4>
       <div id="listeFixes"></div>
       <button class="btn btn-ok" style="width:100%;margin-top:10px" onclick="ouvrirFixe(null)">＋ Ajouter une dépense automatique</button>
-    </div>
-
-    <div class="section-param">
-      <h4>Rappels & notifications</h4>
-      <div class="note" style="margin-bottom:10px;line-height:1.5">
-        Ajoutez vos anniversaires et rendez-vous au calendrier de votre téléphone :
-        vous serez prévenu <strong>la veille et le jour même à 7h</strong>, même si l'application est fermée.
-      </div>
-      <button class="btn btn-ok" style="width:100%" onclick="exporterCalendrier()">📅 Ajouter au calendrier</button>
-      <div class="note" style="margin-top:8px" id="infoCalendrier"></div>
-      <div class="note">À refaire après chaque ajout ou modification.</div>
     </div>
 
     <div class="section-param">
@@ -882,6 +880,7 @@ function afficherAccueil(){
   afficherSpontanees();
   afficherAnnivAccueil();
   afficherRdvAccueil();
+  majInfoCalendrier();
 }
 
 function afficherSpontanees(){
@@ -1270,7 +1269,6 @@ function ouvrirParametres(){
   document.getElementById("pSeuilOrange").value = donnees.seuilOrange;
   afficherListeFixes();
   afficherListeRevenus();
-  majInfoCalendrier();
   document.getElementById("fondParametres").classList.add("ouvert");
 }
 function afficherListeRevenus(){
