@@ -406,7 +406,7 @@
     <div class="carte cliquable carte-calendrier" onclick="exporterCalendrier()">
       <div class="cal-titre">📅 Ajouter les rappels au calendrier ›</div>
       <div class="note">Prévenu la veille et le jour même à 7h, même application fermée.</div>
-      <div class="note">Choisissez <strong>Calendrier</strong> dans le menu de partage (ou « Enregistrer dans Fichiers » puis ouvrez le fichier).</div>
+      <div class="note">Un guide s'affichera pour la dernière étape.</div>
       <div class="note" id="infoCalendrier"></div>
     </div>
   </div>
@@ -424,6 +424,17 @@
 
   <div class="pied">💶 Mon Budget · vos données restent sur cet appareil</div>
 </main>
+
+<!-- MODAL AIDE CALENDRIER -->
+<div class="modal-fond" id="fondAideCal" onclick="if(event.target===this)fermer('fondAideCal')">
+  <div class="modal">
+    <h3>📅 Ajouter les rappels</h3>
+    <div id="etapesCal" style="font-size:.93rem; line-height:1.6; color:var(--texte)"></div>
+    <div class="rangee-btn">
+      <button class="btn btn-ok" onclick="fermer('fondAideCal')">J'ai compris</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL PRÉLÈVEMENTS DU MOIS -->
 <div class="modal-fond" id="fondPrelevements" onclick="if(event.target===this)fermer('fondPrelevements')">
@@ -1568,20 +1579,36 @@ function exporterCalendrier(){
   sauver();
   const nomFichier = "mon-budget-rappels.ics";
   const blob = new Blob([texte], {type:"text/calendar;charset=utf-8"});
+  const estIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                 (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const enAppli = window.navigator.standalone === true ||
+                  window.matchMedia("(display-mode: standalone)").matches;
 
-  // 1) iOS / Android : feuille de partage native -> « Calendrier » ou « Enregistrer dans Fichiers »
-  try{
-    const fichier = new File([blob], nomFichier, {type:"text/calendar"});
-    if(navigator.canShare && navigator.canShare({files:[fichier]})){
-      navigator.share({files:[fichier], title:"Rappels Mon Budget"})
-        .then(()=> afficherToast("📅 " + nb + " rappel" + (nb>1?"s":"") + " envoyé" + (nb>1?"s":"")))
-        .catch(()=>{});
-      majInfoCalendrier();
-      return;
-    }
-  }catch(e){ /* File non supporté : on passe au téléchargement */ }
+  function aide(etapes){
+    document.getElementById("etapesCal").innerHTML =
+      "<p style='margin-bottom:10px'>" + nb + " rappel" + (nb>1?"s ont":" a") +
+      " été préparé" + (nb>1?"s":"") + ". Encore une étape :</p><ol style='padding-left:20px'>" +
+      etapes.map(e=>"<li style='margin-bottom:7px'>"+e+"</li>").join("") + "</ol>";
+    document.getElementById("fondAideCal").classList.add("ouvert");
+  }
 
-  // 2) Repli : téléchargement classique du fichier
+  // iOS installé sur l'écran d'accueil : passer par le partage (seul moyen d'obtenir le fichier)
+  if(estIOS && enAppli){
+    try{
+      const fichier = new File([blob], nomFichier, {type:"text/calendar"});
+      if(navigator.canShare && navigator.canShare({files:[fichier]})){
+        navigator.share({files:[fichier], title:"Rappels Mon Budget"}).catch(()=>{});
+        aide(["Dans le menu qui s'ouvre, choisissez <strong>Enregistrer dans Fichiers</strong>, puis <strong>Enregistrer</strong>.",
+              "Ouvrez l'application <strong>Fichiers</strong> de l'iPhone.",
+              "Touchez <strong>mon-budget-rappels.ics</strong> (dossier Téléchargements ou Sur mon iPhone).",
+              "L'écran du calendrier s'ouvre : touchez <strong>Tout ajouter</strong>. C'est fini !"]);
+        majInfoCalendrier();
+        return;
+      }
+    }catch(e){ /* on continue vers le téléchargement */ }
+  }
+
+  // Safari, Chrome, ordinateur : téléchargement direct du fichier
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1590,7 +1617,13 @@ function exporterCalendrier(){
   a.click();
   document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url), 4000);
-  afficherToast("📅 Fichier créé — ouvrez-le pour ajouter les rappels");
+  if(estIOS){
+    aide(["Touchez <strong>Télécharger</strong> si iOS vous le demande.",
+          "Touchez la flèche de téléchargement <strong>⤓</strong> en haut de Safari, puis le fichier <strong>mon-budget-rappels.ics</strong>.",
+          "L'écran du calendrier s'ouvre : touchez <strong>Tout ajouter</strong>. C'est fini !"]);
+  } else {
+    afficherToast("📅 Fichier téléchargé — ouvrez-le pour ajouter les rappels");
+  }
   majInfoCalendrier();
 }
 function majInfoCalendrier(){
