@@ -406,6 +406,7 @@
     <div class="carte cliquable carte-calendrier" onclick="exporterCalendrier()">
       <div class="cal-titre">📅 Ajouter les rappels au calendrier ›</div>
       <div class="note">Prévenu la veille et le jour même à 7h, même application fermée.</div>
+      <div class="note">Choisissez <strong>Calendrier</strong> dans le menu de partage (ou « Enregistrer dans Fichiers » puis ouvrez le fichier).</div>
       <div class="note" id="infoCalendrier"></div>
     </div>
   </div>
@@ -1565,21 +1566,31 @@ function exporterCalendrier(){
   const texte = L.join("\r\n");
   donnees.calendrierExporte = new Date().toISOString();
   sauver();
-  const estIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                 (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  if(estIOS){
-    // iOS : ouvrir directement le flux calendrier -> feuille « Tout ajouter »
-    window.location.href = "data:text/calendar;charset=utf-8," + encodeURIComponent(texte);
-    afficherToast("📅 Touchez « Tout ajouter » pour valider");
-  } else {
-    const blob = new Blob([texte], {type:"text/calendar;charset=utf-8"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "mon-budget-rappels.ics";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    afficherToast("📅 " + nb + " rappel" + (nb>1?"s":"") + " exporté" + (nb>1?"s":""));
-  }
+  const nomFichier = "mon-budget-rappels.ics";
+  const blob = new Blob([texte], {type:"text/calendar;charset=utf-8"});
+
+  // 1) iOS / Android : feuille de partage native -> « Calendrier » ou « Enregistrer dans Fichiers »
+  try{
+    const fichier = new File([blob], nomFichier, {type:"text/calendar"});
+    if(navigator.canShare && navigator.canShare({files:[fichier]})){
+      navigator.share({files:[fichier], title:"Rappels Mon Budget"})
+        .then(()=> afficherToast("📅 " + nb + " rappel" + (nb>1?"s":"") + " envoyé" + (nb>1?"s":"")))
+        .catch(()=>{});
+      majInfoCalendrier();
+      return;
+    }
+  }catch(e){ /* File non supporté : on passe au téléchargement */ }
+
+  // 2) Repli : téléchargement classique du fichier
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nomFichier;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  afficherToast("📅 Fichier créé — ouvrez-le pour ajouter les rappels");
   majInfoCalendrier();
 }
 function majInfoCalendrier(){
