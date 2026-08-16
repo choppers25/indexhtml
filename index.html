@@ -337,6 +337,16 @@
   .carte-calendrier{text-align:center; padding:14px 16px;}
   .carte-calendrier .cal-titre{font-weight:600; font-size:.95rem; margin-bottom:4px;}
   .carte-calendrier .note{margin-top:2px;}
+  .bandeau-rappel{border-color:var(--accent); cursor:pointer;
+    background:linear-gradient(180deg,#f4f9f5,#eaf3ec); padding:14px 16px;}
+  .bandeau-rappel .br-ligne{display:flex; align-items:center; gap:9px; padding:3px 0;
+    font-size:.92rem; font-weight:600;}
+  .bandeau-rappel .br-quand{font-size:.7rem; font-weight:700; color:#fff;
+    background:var(--accent); padding:2px 8px; border-radius:999px; white-space:nowrap;}
+  .bandeau-rappel .br-detail{font-size:.75rem; color:var(--texte2); font-weight:400;}
+  @media (prefers-color-scheme: dark){
+    .bandeau-rappel{background:linear-gradient(180deg,#1f2b24,#1b241f);}
+  }
 </style>
 </head>
 <body>
@@ -356,6 +366,8 @@
 <main>
   <!-- ACCUEIL -->
   <div id="vueAccueil">
+    <div class="carte bandeau-rappel" id="bandeauRappel" style="display:none" onclick="ouvrirAnniv()"></div>
+
     <div class="carte bandeau-sauv" id="bandeauSauvegarde" style="display:none">
       <div style="flex:1">📤 <strong>Pensez à sauvegarder</strong>
         <div class="note" id="texteSauvegarde"></div></div>
@@ -892,6 +904,7 @@ function afficherAccueil(){
   afficherSpontanees();
   afficherAnnivAccueil();
   afficherRdvAccueil();
+  afficherBandeauRappel();
   majInfoCalendrier();
 }
 
@@ -1060,6 +1073,41 @@ function ligneAnniv(a, avecSuppr){
     ${avecSuppr ? `<button class="btn-mini" onclick="modifierAnniv('${a.id}')">✏️</button>
     <button class="suppr" onclick="supprimerAnniv('${a.id}')">✕</button>` : ""}
   </div>`;
+}
+
+/* ================= BANDEAU : AUJOURD'HUI ET DEMAIN ================= */
+function afficherBandeauRappel(){
+  const b = document.getElementById("bandeauRappel");
+  if(!b) return;
+  const lignes = [];
+  donnees.anniversaires.forEach(a=>{
+    const n = joursAvant(prochaineOccurrenceJM(a.jour, a.mois));
+    if(n === 0 || n === 1){
+      const age = ageActuel(a.annee, a.mois, a.jour);
+      const ageJour = (n === 0 && age !== null) ? age : (age !== null ? age + 1 : null);
+      lignes.push({n, emoji:"🎂", titre:"Anniversaire de " + a.nom,
+        detail: (ageJour !== null && ageJour >= 0 && ageJour < 120
+                  ? ageJour + (ageJour <= 1 ? " an" : " ans") : "") +
+                (a.budget > 0 ? (ageJour !== null ? " · " : "") + "budget " + euros(a.budget) : "")});
+    }
+  });
+  donnees.rdvs.forEach(r=>{
+    const d = new Date(r.date + "T12:00:00");
+    const n = joursAvant(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+    if(n === 0 || n === 1){
+      lignes.push({n, emoji:"📌", titre:r.type,
+        detail: (r.heure ? r.heure : "") + (r.lieu ? (r.heure ? " · " : "") + r.lieu : "")});
+    }
+  });
+  if(!lignes.length){ b.style.display = "none"; return; }
+  lignes.sort((x,y)=> x.n - y.n);
+  b.innerHTML = lignes.map(l =>
+    '<div class="br-ligne"><span>' + l.emoji + '</span>' +
+    '<span class="br-quand">' + (l.n === 0 ? "aujourd\u2019hui" : "demain") + '</span>' +
+    '<span style="flex:1;min-width:0">' + l.titre +
+      (l.detail ? '<span class="br-detail"> — ' + l.detail + '</span>' : '') + '</span></div>'
+  ).join("");
+  b.style.display = "";
 }
 function afficherAnnivAccueil(){
   const cont = document.getElementById("listeAnnivAccueil");
