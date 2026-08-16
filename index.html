@@ -415,11 +415,15 @@
       <div id="listeRdvAccueil"></div>
     </div>
 
-    <div class="carte cliquable carte-calendrier" onclick="exporterCalendrier()">
-      <div class="cal-titre">📅 Ajouter les rappels au calendrier ›</div>
-      <div class="note">Prévenu la veille et le jour même à 7h, même application fermée.</div>
-      <div class="note">Un guide s'affichera pour la dernière étape.</div>
+    <div class="carte cliquable carte-calendrier" onclick="abonnerCalendrier()">
+      <div class="cal-titre">📅 Activer les rappels dans le calendrier ›</div>
+      <div class="note">Un seul appui : notification la veille et le jour même à 7h,
+        même application fermée. Ensuite tout se met à jour automatiquement.</div>
       <div class="note" id="infoCalendrier"></div>
+      <div class="note" style="margin-top:6px">
+        <span onclick="event.stopPropagation();exporterCalendrier()"
+              style="text-decoration:underline">Ou télécharger le fichier des rappels</span>
+      </div>
     </div>
   </div>
 
@@ -1564,6 +1568,27 @@ function alarme(minutes, texte){
   if(minutes <= 0) return "";           // l'heure de rappel est déjà passée
   return "BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:" + icsEchap(texte) +
          "\r\nTRIGGER:-PT" + minutes + "M\r\nEND:VALARM\r\n";
+}
+
+/* ================= ABONNEMENT CALENDRIER (1 appui) ================= */
+const ADRESSE_RAPPELS = "choppers25.github.io/indexhtml/rappels.ics";
+function abonnerCalendrier(){
+  const estIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                 (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if(estIOS){
+    // webcal:// ouvre directement la fenêtre « S'abonner » du calendrier iOS
+    window.location.href = "webcal://" + ADRESSE_RAPPELS;
+    afficherToast("📅 Touchez « S'abonner » puis « Terminé »");
+  } else {
+    document.getElementById("etapesCal").innerHTML =
+      "<p style='margin-bottom:10px'>Sur ordinateur, ajoutez cette adresse dans votre calendrier :</p>" +
+      "<p style='font-family:monospace;background:var(--bg);padding:9px 11px;border-radius:10px;" +
+      "word-break:break-all;border:1px solid var(--bordure)'>https://" + ADRESSE_RAPPELS + "</p>" +
+      "<p style='margin-top:10px;font-size:.85rem;color:var(--texte2)'>" +
+      "Outlook : Calendrier → Ajouter un calendrier → S'abonner à partir du web.<br>" +
+      "Google Agenda : Autres agendas → + → À partir de l'URL.</p>";
+    document.getElementById("fondAideCal").classList.add("ouvert");
+  }
 }
 function exporterCalendrier(){
   const auj = aujourdHui();
